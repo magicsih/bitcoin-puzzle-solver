@@ -9,7 +9,7 @@ edition = "2021"
 rand = "0.8"
 reqwest = { version = "0.11", features = ["blocking"] }
 bitcoin_hashes = "0.9.6"
-secp256k1 = "0.20.2"
+secp256k1 = "0.22.2"
 bitcoin = "0.26.2"
 hex = "0.4.3"
 num_cpus="1.13.0"
