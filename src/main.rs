@@ -8,7 +8,6 @@ use bitcoin::network::constants::Network;
 use bitcoin::util::address::Address;
 use bitcoin::util::key::PrivateKey;
 use rand::Rng;
-use secp256k1::Secp256k1;
 use std::env;
 use std::thread;
 use std::time::Instant;
@@ -22,8 +21,8 @@ const MESSAGER_PRINTOUT_THRESHOLD: u128 = 1_000_000_000;
 fn send_message_to_telegram(message: &str) {
     let telegram_setup = env::var("TELEGRAM_TOKEN").is_ok() && env::var("TELEGRAM_CHAT_ID").is_ok();
     if telegram_setup {
-        let telegram_token = env::var("TELEGRAM_TOKEN").expect("TELEGRAM_TOKEN is not set");
-        let telegram_chat_id = env::var("TELEGRAM_CHAT_ID").expect("TELEGRAM_CHAT_ID is not set");
+        let telegram_token = env::var("TELEGRAM_TOKEN").unwrap();
+        let telegram_chat_id = env::var("TELEGRAM_CHAT_ID").unwrap();
 
         let client = reqwest::blocking::Client::new();
         let url = format!(
@@ -45,7 +44,7 @@ fn random_lookfor(begin: u128, end: u128) {
         end
     );
     let start = Instant::now();
-    let secp = Secp256k1::new();
+    let secp = bitcoin::secp256k1::Secp256k1::new();
 
     let mut counter: u128 = 0;
     let mut rng = rand::thread_rng();
@@ -57,7 +56,7 @@ fn random_lookfor(begin: u128, end: u128) {
         let private_key = PrivateKey {
             compressed: true,
             network: Network::Bitcoin,
-            key: secp256k1::SecretKey::from_slice(&private_key_bytes).unwrap(),
+            key: bitcoin::secp256k1::SecretKey::from_slice(&private_key_bytes).unwrap(),
         };
         let public_key = private_key.public_key(&secp);
         let address = Address::p2pkh(&public_key, Network::Bitcoin).to_string();
