@@ -2,6 +2,12 @@
 
 Bitcoin Puzzle Solver is a Rust application that attempts to solve the Bitcoin puzzle by generating and checking a range of private keys. It utilizes multiple threads to enhance performance and uses Telegram for real-time notifications.
 
+## Motivation
+- [Original transaction](https://www.blockchain.com/explorer/transactions/btc/08389f34c98c606322740c0be6a7125d9860bb8d5cb182c02f98461e5fa6cd15)
+- [Bitcoin puzzle transaction ~32 BTC prize to who solves it](https://bitcointalk.org/index.php?topic=1306983)
+- [Bitcoin challenge discusion](https://bitcointalk.org/index.php?topic=5166284)
+- [== Bitcoin challenge transaction: ~1000 BTC total bounty to solvers! ==UPDATED==](https://bitcointalk.org/index.php?topic=5218972)
+
 ## Prerequisites
 
 - Rust (latest stable version)
