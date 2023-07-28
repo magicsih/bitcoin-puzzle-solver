@@ -4,101 +4,22 @@ extern crate rand;
 extern crate reqwest;
 extern crate secp256k1;
 
+mod on_found;
+
 use bitcoin::network::constants::Network;
 use bitcoin::util::address::Address;
 use bitcoin::util::key::PrivateKey;
+use on_found::OnFound;
 use rand::Rng;
 use std::env;
 use std::thread;
 use std::time::Instant;
+use thousands::Separable;
 
-const POWER: u32 = 65;
+const POWER: u32 = 66;
 const TARGET: &str = "13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so";
 
-const CONSOLE_PRINT_THRESHOLD: u128 = 10_000_000;
-const MESSAGER_PRINTOUT_THRESHOLD: u128 = 1_000_000_000;
-
-fn send_message_to_telegram(message: &str) {
-    let telegram_setup = env::var("TELEGRAM_TOKEN").is_ok() && env::var("TELEGRAM_CHAT_ID").is_ok();
-    if telegram_setup {
-        let telegram_token = env::var("TELEGRAM_TOKEN").unwrap();
-        let telegram_chat_id = env::var("TELEGRAM_CHAT_ID").unwrap();
-
-        let client = reqwest::blocking::Client::new();
-        let url = format!(
-            "https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}",
-            telegram_token, telegram_chat_id, message
-        );
-        let _ = client.get(&url).send();
-    } else {
-        //print out message to console
-        println!("{}", message);
-    }
-}
-
-fn random_lookfor(begin: u128, end: u128) {
-    println!(
-        "[{:?}] B-Puzzle Random Solver Started. {} to {}",
-        thread::current().id(),
-        begin,
-        end
-    );
-    let start = Instant::now();
-    let secp = bitcoin::secp256k1::Secp256k1::new();
-
-    let mut counter: u128 = 0;
-    let mut rng = rand::thread_rng();
-
-    loop {
-        let value = rng.gen_range(begin..end);
-        let private_key = format!("{:0>64x}", value);
-        let private_key_bytes = hex::decode(private_key.clone()).unwrap();
-        let private_key = PrivateKey {
-            compressed: true,
-            network: Network::Bitcoin,
-            key: bitcoin::secp256k1::SecretKey::from_slice(&private_key_bytes).unwrap(),
-        };
-        let public_key = private_key.public_key(&secp);
-        let address = Address::p2pkh(&public_key, Network::Bitcoin).to_string();
-
-        // print address and p2pkh(private_key)
-        // println!("address:{} key:{}", address, private_key.to_wif());
-
-        if address == TARGET {
-            send_message_to_telegram(&format!(
-                "[Lucky] PrivateKey:{} Address:{}",
-                private_key, address
-            ));
-            println!(
-                "[Lucky] Value: {} Private Key: {} Address: {}",
-                value, private_key, address
-            );
-            break;
-        }
-
-        counter += 1;
-
-        if counter % CONSOLE_PRINT_THRESHOLD == 0 {
-            let throughput = counter as f64 / start.elapsed().as_secs_f64();
-            println!(
-                "[{:?}] {}({:.2} addrs/s)",
-                thread::current().id(),
-                counter,
-                throughput
-            );
-            if counter % MESSAGER_PRINTOUT_THRESHOLD == 0 {
-                send_message_to_telegram(&format!(
-                    "[{:?}] {}({:.2} addrs/s)",
-                    thread::current().id(),
-                    counter,
-                    throughput
-                ));
-            }
-        }
-    }
-
-    println!("B-Puzzle Solver Finished.");
-}
+const CONSOLE_PRINT_THRESHOLD: u128 = 500_000_000;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -108,23 +29,24 @@ fn main() {
         args[1].parse().expect("Failed to parse number of threads")
     };
 
-    let begin = 2u128.pow(POWER);
-    let end: u128 = 2u128.pow(POWER + 1) - 1;
+    let begin = 2u128.pow(POWER - 1);
+    let end: u128 = 2u128.pow(POWER);
 
     println!(
-        "B-Puzzle Solver Main Process Started. THREADS:{} BEGIN: {} END: {}",
-        num_threads, begin, end
+        "Puzzle solver main process started.\nconcurrency:{}\nsearch space:2^{}\n{}~{}\ntarget:{}",
+        num_threads,
+        POWER,
+        begin.separate_with_commas(),
+        end.separate_with_commas(),
+        TARGET
     );
-    send_message_to_telegram(&format!(
-        "B-Puzzle Solver Main Process Started. THREADS:{} BEGIN: {} END: {}",
-        num_threads, begin, end
-    ));
 
     let mut handles = vec![];
 
     for _ in 0..num_threads {
         let handle = thread::spawn(move || {
-            random_lookfor(begin, end);
+            let mut rng = rand::thread_rng();
+            random_lookfor(rng.gen_range(begin..end), Some(&on_found::on_found));
         });
         handles.push(handle);
     }
@@ -132,4 +54,59 @@ fn main() {
     for handle in handles {
         handle.join().unwrap();
     }
+}
+
+fn random_lookfor(begin: u128, on_found: Option<&OnFound>) {
+    println!(
+        "{:?} starts searching from {}",
+        thread::current().id(),
+        begin.separate_with_commas()
+    );
+    let start = Instant::now();
+    let secp = bitcoin::secp256k1::Secp256k1::new();
+
+    let mut counter: u128 = 0;
+
+    loop {
+        let value: u128 = begin + counter;
+        let private_key_hex = format!("{:0>64x}", value);
+        let private_key_bytes = hex::decode(private_key_hex.clone()).unwrap();
+        let private_key: PrivateKey = PrivateKey {
+            compressed: true,
+            network: Network::Bitcoin,
+            key: bitcoin::secp256k1::SecretKey::from_slice(&private_key_bytes).unwrap(),
+        };
+        let public_key = private_key.public_key(&secp);
+        let address = Address::p2pkh(&public_key, Network::Bitcoin).to_string();
+
+        if address == TARGET {
+            println!(
+                "[{:?}] value: {} private key: {} address: {}",
+                thread::current().id(),
+                value,
+                private_key,
+                address
+            );
+           
+            if let Some(on_found_callback) = on_found {
+                on_found_callback(value, private_key, address);
+            }
+            break;
+        }
+
+        counter += 1;
+
+        let throughput = counter as f64 / start.elapsed().as_secs_f64();
+
+        if counter % CONSOLE_PRINT_THRESHOLD == 0 {
+            println!(
+                "[{:?}] {} ({:.2} addrs/s)",
+                thread::current().id(),
+                counter.separate_with_commas(),
+                throughput
+            );
+        }
+    }
+
+    println!("[{:?}] btc puzzle solver finished.", thread::current().id());
 }
