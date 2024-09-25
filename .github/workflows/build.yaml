@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  APP_NAME: bitcoin-puzzle-solver
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,5 +37,5 @@ jobs:
         with:
           push: true
           tags: |
-            ${{ env.NCP_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}:${{ steps.commit.outputs.short }}
-            ${{ env.NCP_CONTAINER_REGISTRY }}/${{ env.APP_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.APP_NAME }}:${{ steps.commit.outputs.short }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.APP_NAME }}:latest
