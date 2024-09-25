@@ -16,8 +16,8 @@ use std::thread;
 use std::time::Instant;
 use thousands::Separable;
 
-const POWER: u32 = 66;
-const TARGET: &str = "13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so";
+const POWER: u32 = 67;
+const TARGET: &str = "1NBC8uXJy1GiJ6drkiZa1WuKn51ps7EPTv";
 
 const CONSOLE_PRINT_THRESHOLD: u128 = 500_000_000;
 
