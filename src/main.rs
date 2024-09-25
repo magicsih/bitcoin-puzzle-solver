@@ -24,7 +24,7 @@ const CONSOLE_PRINT_THRESHOLD: u128 = 500_000_000;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let num_threads: u32 = if args.len() < 2 {
-        num_cpus::get() as u32 / 2
+        num_cpus::get() as u32
     } else {
         args[1].parse().expect("Failed to parse number of threads")
     };
@@ -33,7 +33,7 @@ fn main() {
     let end: u128 = 2u128.pow(POWER);
 
     println!(
-        "Puzzle solver main process started.\nconcurrency:{}\nsearch space:2^{}\n{}~{}\ntarget:{}",
+        "Puzzle solver main process started. concurrency:{}\nsearch space:2^{}\n{}~{}\ntarget:{}",
         num_threads,
         POWER,
         begin.separate_with_commas(),
