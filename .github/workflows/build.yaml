@@ -18,7 +18,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        ref: main
       - id: commit
         uses: prompt/actions-commit-hash@v3
       - name: Set up QEMU
